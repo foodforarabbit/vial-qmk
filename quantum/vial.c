@@ -576,7 +576,7 @@ static void reload_combo(void) {
 #endif
 
 #ifdef VIAL_TAP_DANCE_ENABLE
-void process_tap_dance_action_on_dance_finished(tap_dance_action_t *action);
+void process_tap_dance_action_on_dance_finished(tap_dance_action_t *action, tap_dance_state_t *state);
 #endif
 
 bool process_record_vial(uint16_t keycode, keyrecord_t *record) {
@@ -596,7 +596,7 @@ bool process_record_vial(uint16_t keycode, keyrecord_t *record) {
         if ((action->state.count == 1 && td_entry.on_tap && td_entry.on_hold && !td_entry.on_double_tap && !td_entry.on_tap_hold)
             || (action->state.count == 2 && td_entry.on_double_tap)) {
                 action->state.pressed = false;
-                process_tap_dance_action_on_dance_finished(action);
+                process_tap_dance_action_on_dance_finished(action, &action->state);
                 /* reset_tap_dance() will get called in process_tap_dance() */
             }
     }

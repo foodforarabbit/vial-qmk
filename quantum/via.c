@@ -61,6 +61,14 @@
 #include "vial.h"
 #endif
 
+#if defined(SECURE_ENABLE)
+#    include "secure.h"
+#endif
+
+#if defined(AUDIO_ENABLE)
+#    include "audio.h"
+#endif
+
 #ifdef VIALRGB_ENABLE
 #include "vialrgb.h"
 #endif

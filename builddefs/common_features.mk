@@ -29,6 +29,8 @@ QUANTUM_SRC += \
     $(QUANTUM_DIR)/logging/debug.c \
     $(QUANTUM_DIR)/logging/sendchar.c \
     $(QUANTUM_DIR)/process_keycode/process_default_layer.c \
+    $(QUANTUM_DIR)/process_keycode/process_oneshot.c \
+    $(QUANTUM_DIR)/process_keycode/process_quantum.c \
 
 include $(QUANTUM_DIR)/nvm/rules.mk
 
@@ -123,7 +125,7 @@ ifeq ($(strip $(MOUSEKEY_ENABLE)), yes)
     MOUSE_ENABLE := yes
 endif
 
-VALID_POINTING_DEVICE_DRIVER_TYPES := adns5050 adns9800 analog_joystick azoteq_iqs5xx cirque_pinnacle_i2c cirque_pinnacle_spi paw3204 pmw3320 pmw3360 pmw3389 pimoroni_trackball custom
+VALID_POINTING_DEVICE_DRIVER_TYPES := adns5050 adns9800 analog_joystick azoteq_iqs5xx cirque_pinnacle_i2c cirque_pinnacle_spi digitizer paw3204 paw3222 pmw3320 pmw3360 pmw3389 pimoroni_trackball custom
 ifeq ($(strip $(POINTING_DEVICE_ENABLE)), yes)
     ifeq ($(filter $(POINTING_DEVICE_DRIVER),$(VALID_POINTING_DEVICE_DRIVER_TYPES)),)
         $(call CATASTROPHIC_ERROR,Invalid POINTING_DEVICE_DRIVER,POINTING_DEVICE_DRIVER="$(POINTING_DEVICE_DRIVER)" is not a valid pointing device type)
@@ -133,7 +135,7 @@ ifeq ($(strip $(POINTING_DEVICE_ENABLE)), yes)
         VPATH += $(QUANTUM_DIR)/pointing_device
         SRC += $(QUANTUM_DIR)/pointing_device/pointing_device.c
         SRC += $(QUANTUM_DIR)/pointing_device/pointing_device_auto_mouse.c
-        ifneq ($(strip $(POINTING_DEVICE_DRIVER)), custom)
+        ifneq ($(POINTING_DEVICE_DRIVER),$(filter $(strip $(POINTING_DEVICE_DRIVER)),custom digitizer))
             SRC += drivers/sensors/$(strip $(POINTING_DEVICE_DRIVER)).c
             OPT_DEFS += -DPOINTING_DEVICE_DRIVER_$(strip $(shell echo $(POINTING_DEVICE_DRIVER) | tr '[:lower:]' '[:upper:]'))
         endif
@@ -155,6 +157,12 @@ ifeq ($(strip $(POINTING_DEVICE_ENABLE)), yes)
             SRC += drivers/sensors/cirque_pinnacle.c
             SRC += drivers/sensors/cirque_pinnacle_gestures.c
             SRC += $(QUANTUM_DIR)/pointing_device/pointing_device_gestures.c
+        else ifeq ($(strip $(POINTING_DEVICE_DRIVER)), paw3222)
+            SPI_DRIVER_REQUIRED = yes
+        else ifeq ($(strip $(POINTING_DEVICE_DRIVER)), digitizer)
+            ifneq ($(strip $(DIGITIZER_ENABLE)), yes)
+                $(call CATASTROPHIC_ERROR,The digitizer feature must be enabled when the pointing device driver is "digitizer")
+            endif
         else ifeq ($(strip $(POINTING_DEVICE_DRIVER)), pimoroni_trackball)
             I2C_DRIVER_REQUIRED = yes
         else ifneq ($(filter $(strip $(POINTING_DEVICE_DRIVER)),pmw3360 pmw3389),)
@@ -162,6 +170,36 @@ ifeq ($(strip $(POINTING_DEVICE_ENABLE)), yes)
             SRC += drivers/sensors/pmw33xx_common.c
         endif
     endif
+endif
+
+DIGITIZER_DRIVER ?= none
+VALID_DIGITIZER_DRIVER_TYPES := azoteq_iqs5xx maxtouch custom none
+ifeq ($(strip $(DIGITIZER_ENABLE)), yes)
+    ifeq ($(filter $(DIGITIZER_DRIVER),$(VALID_DIGITIZER_DRIVER_TYPES)),)
+        $(call CATASTROPHIC_ERROR,Invalid DIGITIZER_DRIVER,DIGITIZER_DRIVER="$(DIGITIZER_DRIVER)" is not a valid digitizer device type)
+    else
+        OPT_DEFS += -DDIGITIZER_ENABLE
+        SRC += $(QUANTUM_DIR)/digitizer.c
+        SRC += $(QUANTUM_DIR)/digitizer_mouse_fallback.c
+        ifeq ($(filter $(strip $(DIGITIZER_DRIVER)),custom none),)
+            SRC += drivers/sensors/$(strip $(DIGITIZER_DRIVER)).c
+            OPT_DEFS += -DDIGITIZER_DRIVER_$(strip $(shell echo $(DIGITIZER_DRIVER) | tr '[:lower:]' '[:upper:]'))
+        endif
+        OPT_DEFS += -DDIGITIZER_DRIVER_$(strip $(DIGITIZER_DRIVER))
+        ifeq ($(strip $(DIGITIZER_DRIVER)), azoteq_iqs5xx)
+            I2C_DRIVER_REQUIRED = yes
+        else ifeq ($(strip $(DIGITIZER_DRIVER)), maxtouch)
+            I2C_DRIVER_REQUIRED = yes
+        endif
+    endif
+    ifeq ($(DIGITIZER_DRIVER), $(POINTING_DEVICE_DRIVER))
+            $(call CATASTROPHIC_ERROR,The DIGITIZER and POINTING_DEVICE features cannot both use the same driver)
+    endif
+endif
+
+ifeq ($(strip $(MAXTOUCH_DEBUG)), yes)
+    RAW_ENABLE = yes
+    OPT_DEFS += -DMAXTOUCH_DEBUG
 endif
 
 QUANTUM_PAINTER_ENABLE ?= no
@@ -633,6 +671,9 @@ ifeq ($(strip $(VIA_ENABLE)), yes)
     RAW_ENABLE := yes
     BOOTMAGIC_ENABLE := yes
     TRI_LAYER_ENABLE := yes
+    ifeq ($(strip $(VIA_INSECURE)), yes)
+        OPT_DEFS += -DVIA_INSECURE
+    endif
 endif
 
 ifeq ($(strip $(RAW_ENABLE)), yes)
@@ -944,21 +985,25 @@ ifeq ($(strip $(DIP_SWITCH_ENABLE)), yes)
     endif
 endif
 
+ifeq ($(strip $(BATTERY_ENABLE)), yes)
+    BATTERY_DRIVER_REQUIRED := yes
+endif
+
 VALID_BATTERY_DRIVER_TYPES := adc custom vendor
 
-BATTERY_DRIVER ?= adc
+BATTERY_DRIVER ?= none
 ifeq ($(strip $(BATTERY_DRIVER_REQUIRED)), yes)
     ifeq ($(filter $(BATTERY_DRIVER),$(VALID_BATTERY_DRIVER_TYPES)),)
         $(call CATASTROPHIC_ERROR,Invalid BATTERY_DRIVER,BATTERY_DRIVER="$(BATTERY_DRIVER)" is not a valid battery driver)
     endif
 
-    OPT_DEFS += -DBATTERY_DRIVER
-    OPT_DEFS += -DBATTERY_$(strip $(shell echo $(BATTERY_DRIVER) | tr '[:lower:]' '[:upper:]'))
+    OPT_DEFS += -DBATTERY_DRIVER_$(strip $(shell echo $(BATTERY_DRIVER) | tr '[:lower:]' '[:upper:]'))
 
     COMMON_VPATH += $(DRIVER_PATH)/battery
 
-    SRC += battery.c
-    SRC += battery_$(strip $(BATTERY_DRIVER)).c
+    ifneq ($(strip $(BATTERY_DRIVER)), custom)
+        SRC += battery_$(strip $(BATTERY_DRIVER)).c
+    endif
 
     # add extra deps
     ifeq ($(strip $(BATTERY_DRIVER)), adc)

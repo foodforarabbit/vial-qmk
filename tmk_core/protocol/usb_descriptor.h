@@ -223,7 +223,7 @@ enum usb_endpoints {
 #    ifdef USB_ENDPOINTS_ARE_REORDERABLE
 #        define RAW_OUT_EPNUM RAW_IN_EPNUM
 #    else
-    RAW_OUT_EPNUM         = NEXT_EPNUM,
+    RAW_OUT_EPNUM = NEXT_EPNUM,
 #    endif
 #endif
 
@@ -250,7 +250,7 @@ enum usb_endpoints {
 #    ifdef USB_ENDPOINTS_ARE_REORDERABLE
 #        define CDC_OUT_EPNUM CDC_IN_EPNUM
 #    else
-    CDC_OUT_EPNUM         = NEXT_EPNUM,
+    CDC_OUT_EPNUM = NEXT_EPNUM,
 #    endif
 #endif
 
@@ -284,7 +284,11 @@ enum usb_endpoints {
 #endif
 
 #define KEYBOARD_EPSIZE 8
-#define SHARED_EPSIZE 32
+#if defined(DIGITIZER_ENABLE) && defined(DIGITIZER_SHARED_EP)
+#    define SHARED_EPSIZE 64
+#else
+#    define SHARED_EPSIZE 32
+#endif
 #define MOUSE_EPSIZE 16
 #define RAW_EPSIZE 32
 #define CONSOLE_EPSIZE 32
@@ -292,6 +296,6 @@ enum usb_endpoints {
 #define CDC_NOTIFICATION_EPSIZE 8
 #define CDC_EPSIZE 16
 #define JOYSTICK_EPSIZE 8
-#define DIGITIZER_EPSIZE 8
+#define DIGITIZER_EPSIZE 64
 
 uint16_t get_usb_descriptor(const uint16_t wValue, const uint16_t wIndex, const uint16_t wLength, const void** const DescriptorAddress);
