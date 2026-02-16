@@ -11,8 +11,12 @@
 #define C_S(kc) C(S(kc))
 #define LCG_T(kc)  MT(MOD_LCTL | MOD_LGUI, kc)
 #define RCG_T(kc)  MT(MOD_RCTL | MOD_RGUI, kc)
+#ifndef LCG
 #define LCG(kc) C(G(kc))
+#endif
+#ifndef RCG
 #define RCG(kc) RCTL(RGUI(kc))
+#endif
 
 #define KC_BSPACE KC_BACKSPACE
 #define KC_NUMLOCK KC_NUM_LOCK
@@ -577,17 +581,17 @@ _Static_assert(BL_ON == 0x7800, "");
 _Static_assert(BL_OFF == 0x7801, "");
 _Static_assert(BL_INC == 0x7804, "");
 _Static_assert(BL_DEC == 0x7803, "");
-_Static_assert(RGB_TOG == 0x7820, "");
-_Static_assert(RGB_MOD == 0x7821, "");
-_Static_assert(RGB_RMOD == 0x7822, "");
-_Static_assert(RGB_HUI == 0x7823, "");
-_Static_assert(RGB_HUD == 0x7824, "");
-_Static_assert(RGB_SAI == 0x7825, "");
-_Static_assert(RGB_SAD == 0x7826, "");
-_Static_assert(RGB_VAI == 0x7827, "");
-_Static_assert(RGB_VAD == 0x7828, "");
-_Static_assert(RGB_SPI == 0x7829, "");
-_Static_assert(RGB_SPD == 0x782A, "");
+_Static_assert(RM_TOGG == 0x7842, "");
+_Static_assert(RM_NEXT == 0x7843, "");
+_Static_assert(RM_PREV == 0x7844, "");
+_Static_assert(RM_HUEU == 0x7845, "");
+_Static_assert(RM_HUED == 0x7846, "");
+_Static_assert(RM_SATU == 0x7847, "");
+_Static_assert(RM_SATD == 0x7848, "");
+_Static_assert(RM_VALU == 0x7849, "");
+_Static_assert(RM_VALD == 0x784A, "");
+_Static_assert(RM_SPDU == 0x784B, "");
+_Static_assert(RM_SPDD == 0x784C, "");
 _Static_assert(RGB_M_P == 0x782B, "");
 _Static_assert(RGB_M_B == 0x782C, "");
 _Static_assert(RGB_M_R == 0x782D, "");
@@ -647,22 +651,22 @@ _Static_assert(KC_MPLY == 174, "");
 _Static_assert(KC_MRWD == 188, "");
 _Static_assert(KC_MFFD == 187, "");
 _Static_assert(KC_EJCT == 176, "");
-_Static_assert(KC_MS_U == 0xCD, "");
-_Static_assert(KC_MS_D == 0xCE, "");
-_Static_assert(KC_MS_L == 0xCF, "");
-_Static_assert(KC_MS_R == 0xD0, "");
-_Static_assert(KC_BTN1 == 0xD1, "");
-_Static_assert(KC_BTN2 == 0xD2, "");
-_Static_assert(KC_BTN3 == 0xD3, "");
-_Static_assert(KC_BTN4 == 0xD4, "");
-_Static_assert(KC_BTN5 == 0xD5, "");
-_Static_assert(KC_WH_U == 0xD9, "");
-_Static_assert(KC_WH_D == 0xDA, "");
-_Static_assert(KC_WH_L == 0xDB, "");
-_Static_assert(KC_WH_R == 0xDC, "");
-_Static_assert(KC_ACL0 == 0xDD, "");
-_Static_assert(KC_ACL1 == 0xDE, "");
-_Static_assert(KC_ACL2 == 0xDF, "");
+_Static_assert(MS_UP == 0xCD, "");
+_Static_assert(MS_DOWN == 0xCE, "");
+_Static_assert(MS_LEFT == 0xCF, "");
+_Static_assert(MS_RGHT == 0xD0, "");
+_Static_assert(MS_BTN1 == 0xD1, "");
+_Static_assert(MS_BTN2 == 0xD2, "");
+_Static_assert(MS_BTN3 == 0xD3, "");
+_Static_assert(MS_BTN4 == 0xD4, "");
+_Static_assert(MS_BTN5 == 0xD5, "");
+_Static_assert(MS_WHLU == 0xD9, "");
+_Static_assert(MS_WHLD == 0xDA, "");
+_Static_assert(MS_WHLL == 0xDB, "");
+_Static_assert(MS_WHLR == 0xDC, "");
+_Static_assert(MS_ACL0 == 0xDD, "");
+_Static_assert(MS_ACL1 == 0xDE, "");
+_Static_assert(MS_ACL2 == 0xDF, "");
 _Static_assert(KC_LCAP == 130, "");
 _Static_assert(KC_LNUM == 131, "");
 _Static_assert(KC_LSCR == 132, "");
