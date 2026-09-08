@@ -602,7 +602,10 @@ typedef enum { MAXTOUCH_DEBUG_REBOOT_BOOTLOADER, MAXTOUCH_DEBUG_SET_MOUSE_MODE, 
 
 typedef enum { MAXTOUCH_DEBUG_OK, MAXTOUCH_DEBUG_INVALID_VERSION, MAXTOUCH_DEBUG_INVALID_CMD, MAXTOUCH_DEBUG_INVALID_LENGTH, MAXTOUCH_DEBUG_I2C_ERR } maxtouch_debug_status;
 
-void raw_hid_receive(uint8_t *data, uint8_t length) {
+// Process one debug packet in place. The response (status in data[0], any
+// payload after it) is written back into the same buffer; the caller is
+// responsible for sending it to the host.
+static void maxtouch_debug_process(uint8_t *data, uint8_t length) {
     maxtouch_debug_status  status = MAXTOUCH_DEBUG_OK;
     maxtouch_debug_command cmd    = (maxtouch_debug_command)data[0];
 
@@ -642,7 +645,7 @@ void raw_hid_receive(uint8_t *data, uint8_t length) {
         case MAXTOUCH_DEBUG_READ: {
             const uint16_t read_address = (data[1] << 8) | data[2];
             const uint16_t read_length  = data[3];
-            if (read_length > 0x1c) {
+            if (read_length > 0x1c || read_length + 4 > length) {
                 status = MAXTOUCH_DEBUG_INVALID_LENGTH;
             } else {
                 if (i2c_read_register16(MXT336UD_ADDRESS, read_address, (uint8_t *)&data[4], read_length, MXT_I2C_TIMEOUT_MS) != I2C_STATUS_SUCCESS) {
@@ -654,7 +657,7 @@ void raw_hid_receive(uint8_t *data, uint8_t length) {
         case MAXTOUCH_DEBUG_WRITE: {
             const uint16_t write_address = (data[1] << 8) | data[2];
             const uint16_t write_length  = data[3];
-            if (write_length > 0x1c) {
+            if (write_length > 0x1c || write_length + 4 > length) {
                 status = MAXTOUCH_DEBUG_INVALID_LENGTH;
             } else {
                 if (i2c_write_register16(MXT336UD_ADDRESS, write_address, (uint8_t *)&data[4], write_length, MXT_I2C_TIMEOUT_MS) != I2C_STATUS_SUCCESS) {
@@ -669,6 +672,20 @@ void raw_hid_receive(uint8_t *data, uint8_t length) {
     }
 
     data[0] = (uint8_t)status;
+}
+
+#    if defined(VIA_ENABLE)
+// VIA/Vial owns raw_hid_receive, so we cannot define it here. Keymaps can
+// tunnel debug packets to this entry point from raw_hid_receive_kb (VIA
+// forwards unrecognised command ids there and sends the response buffer
+// itself, so we must not call raw_hid_send here).
+void maxtouch_debug_hid_receive(uint8_t *data, uint8_t length) {
+    maxtouch_debug_process(data, length);
+}
+#    else
+void raw_hid_receive(uint8_t *data, uint8_t length) {
+    maxtouch_debug_process(data, length);
     raw_hid_send(data, length);
 }
+#    endif
 #endif

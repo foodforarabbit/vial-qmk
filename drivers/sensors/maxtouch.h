@@ -381,3 +381,11 @@ static const unsigned char T100_CFG_RPTEACHCYCLE = 0x1;
 enum { MXT_NO_EVENT, MXT_MOVE, MXT_UNSUP, MXT_SUP, MXT_DOWN, MXT_UP, MXT_UNSUPSUP, MXT_UNSUPUP, MXT_DOWNSUP, MXT_DOWNUP };
 
 enum { MXT_FINGER = 1, MXT_PASSIVE_STYLUS, MXT_GLOVE = 5, MXT_LARGE_TOUCH };
+
+#if defined(MAXTOUCH_DEBUG) && defined(VIA_ENABLE)
+#    include <stdint.h>
+// Entry point for tunnelling the maxtouch debug protocol through VIA/Vial's
+// raw_hid_receive_kb hook. Processes one debug packet in place; the caller
+// (VIA) sends the response buffer back to the host.
+void maxtouch_debug_hid_receive(uint8_t *data, uint8_t length);
+#endif
