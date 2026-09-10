@@ -197,23 +197,6 @@ void digitizer_update_mouse_report(report_digitizer_t *report) {
                 contact_start_time = timer_read32();
             } else if (contacts >= 3) {
                 state = Swipe;
-            } else if (contacts >= 2) {
-                /* Two fingers landing is unambiguously a scroll, never a tap,
-                 * so it should not have to satisfy the tap-rejection tests to
-                 * get going. Without this, DIGITIZER_MOUSE_TAP_DISTANCE serves
-                 * two unrelated purposes at once -- how far a contact may drift
-                 * and still count as a tap, AND how far two fingers must travel
-                 * before scrolling starts -- which puts them in direct tension.
-                 * A value large enough for reliable tapping makes two-finger
-                 * scroll wait out DIGITIZER_MOUSE_TAP_DETECTION_TIMEOUT.
-                 *
-                 * MEASURED on a Sofle Procyon: at TAP_DISTANCE 25, scroll onset
-                 * was bimodal -- 18-47ms when the centroid happened to trip the
-                 * distance test, 114ms+ when it did not, failing ~30% of the
-                 * time. Raising it to 50 fixed tapping and made the lag
-                 * systematic instead. Decoupling here removes the tension
-                 * rather than trading one symptom for the other. */
-                state = MoveScroll;
             } else if (duration > DIGITIZER_MOUSE_TAP_DETECTION_TIMEOUT || distance_x > DIGITIZER_MOUSE_TAP_DISTANCE || distance_y > DIGITIZER_MOUSE_TAP_DISTANCE) {
                 state = MoveScroll;
             }
@@ -223,15 +206,6 @@ void digitizer_update_mouse_report(report_digitizer_t *report) {
         case MoveScroll: {
             if (contacts == 0) {
                 state = None;
-            } else if (contacts != last_contacts) {
-                /* The contact count just changed, so `x`/`y` jumped between a
-                 * single finger's position and a multi-finger CENTROID. That
-                 * jump is not movement, but last_x/last_y are updated
-                 * unconditionally at the end of every call and never reset, so
-                 * differencing across the transition emits it as a large bogus
-                 * delta -- felt as a lurch when adding or removing a finger.
-                 * Skip one frame; the next difference is centroid-to-centroid
-                 * and correct. */
             } else if (contacts == 1) {
                 mouse_report.x = x - last_x;
                 mouse_report.y = y - last_y;
