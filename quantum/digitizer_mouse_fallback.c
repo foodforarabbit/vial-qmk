@@ -20,6 +20,13 @@
 #        define DIGITIZER_MOUSE_TAP_DURATION 1
 #    endif
 
+#    ifndef DIGITIZER_MOUSE_MULTI_SCROLL_DISTANCE
+/* Centroid travel before two-or-more contacts count as a scroll. Deliberately
+ * far smaller than DIGITIZER_MOUSE_TAP_DISTANCE, which is sized for
+ * single-finger tap drift and is the wrong yardstick for this. */
+#        define DIGITIZER_MOUSE_MULTI_SCROLL_DISTANCE 20
+#    endif
+
 #    ifndef DIGITIZER_MOUSE_TAP_DISTANCE
 #        define DIGITIZER_MOUSE_TAP_DISTANCE 25
 #    endif
@@ -197,22 +204,27 @@ void digitizer_update_mouse_report(report_digitizer_t *report) {
                 contact_start_time = timer_read32();
             } else if (contacts >= 3) {
                 state = Swipe;
-            } else if (contacts >= 2) {
-                /* Two fingers landing is unambiguously a scroll, never a tap,
-                 * so it should not have to satisfy the tap-rejection tests to
-                 * get going. Without this, DIGITIZER_MOUSE_TAP_DISTANCE serves
-                 * two unrelated purposes at once -- how far a contact may drift
-                 * and still count as a tap, AND how far two fingers must travel
-                 * before scrolling starts -- which puts them in direct tension.
-                 * A value large enough for reliable tapping makes two-finger
-                 * scroll wait out DIGITIZER_MOUSE_TAP_DETECTION_TIMEOUT.
+            } else if (contacts >= 2 && (distance_x > DIGITIZER_MOUSE_MULTI_SCROLL_DISTANCE || distance_y > DIGITIZER_MOUSE_MULTI_SCROLL_DISTANCE)) {
+                /* Two-finger scroll and two-finger TAP are both real gestures,
+                 * so the presence of two contacts cannot decide between them --
+                 * only movement can. What was wrong before was not the test but
+                 * the THRESHOLD: DIGITIZER_MOUSE_TAP_DISTANCE has to be large
+                 * enough to tolerate how far a single-finger tap drifts, and
+                 * that same largeness is what made two-finger scroll wait.
                  *
-                 * MEASURED on a Sofle Procyon: at TAP_DISTANCE 25, scroll onset
-                 * was bimodal -- 18-47ms when the centroid happened to trip the
-                 * distance test, 114ms+ when it did not, failing ~30% of the
-                 * time. Raising it to 50 fixed tapping and made the lag
-                 * systematic instead. Decoupling here removes the tension
-                 * rather than trading one symptom for the other. */
+                 * So give multi-finger contacts their own, much smaller
+                 * threshold. A two-finger tap barely moves its centroid and
+                 * still falls through to `Tapped` on lift, preserving
+                 * right-click; a two-finger scroll trips this almost
+                 * immediately instead of having to travel a tap's worth of
+                 * distance.
+                 *
+                 * MEASURED on a Sofle Procyon: single-finger taps drift 28-66
+                 * accumulated units, which is why TAP_DISTANCE must stay near
+                 * 50. At 50, two-finger scroll onset was bimodal and lagged
+                 * ~30% of the time; bypassing the distance test entirely fixed
+                 * that but silently ate two-finger taps AND some single-finger
+                 * taps that momentarily reported a second contact. */
                 state = MoveScroll;
             } else if (duration > DIGITIZER_MOUSE_TAP_DETECTION_TIMEOUT || distance_x > DIGITIZER_MOUSE_TAP_DISTANCE || distance_y > DIGITIZER_MOUSE_TAP_DISTANCE) {
                 state = MoveScroll;
